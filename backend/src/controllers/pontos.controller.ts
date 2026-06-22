@@ -1,5 +1,5 @@
-import type { PontoColeta, PontoColetaInput, ErrorResponse, ResumoSistema } from '../types/ponto-coleta.js'
-import * as repository from '../services/pontos.repository.js'
+import type { PontoColeta, PontoColetaInput, ErrorResponse } from '../types/ponto-coleta.js'
+import * as service from '../services/pontos.service.js'
 
 export function ok<T>(data: T) {
   return { status: 200, body: data }
@@ -37,14 +37,14 @@ export function listPontos(query: { busca?: string; tipo?: string; incluirInativ
   const tipo = query.tipo
 
   if (busca || tipo) {
-    return ok(repository.search(busca ?? '', tipo, includeInativos))
+    return ok(service.repository.search(busca ?? '', tipo, includeInativos))
   }
 
-  return ok(repository.findAll(includeInativos))
+  return ok(service.repository.findAll(includeInativos))
 }
 
 export function getPontoById(id: string) {
-  const ponto = repository.findById(id)
+  const ponto = service.repository.findById(id)
   if (!ponto) return notFound('Ponto de coleta nao encontrado.')
   return ok(ponto)
 }
@@ -53,7 +53,7 @@ export function createPonto(input: PontoColetaInput) {
   const error = validateInput(input)
   if (error) return badRequest(error)
 
-  const ponto = repository.create(input)
+  const ponto = service.repository.create(input)
   return created(ponto)
 }
 
@@ -61,28 +61,17 @@ export function updatePonto(id: string, input: PontoColetaInput) {
   const error = validateInput(input)
   if (error) return badRequest(error)
 
-  const ponto = repository.update(id, input)
+  const ponto = service.repository.update(id, input)
   if (!ponto) return notFound('Ponto de coleta nao encontrado.')
   return ok(ponto)
 }
 
 export function deletePonto(id: string) {
-  const removed = repository.remove(id)
+  const removed = service.repository.remove(id)
   if (!removed) return notFound('Ponto de coleta nao encontrado.')
   return noContent()
 }
 
-export function getResumo(): ResumoSistema {
-  const ativos = repository.findAll(false) as PontoColeta[]
-  const tiposSet = new Set<string>()
-  for (const ponto of ativos) {
-    for (const tipo of ponto.tiposDoacao) {
-      tiposSet.add(tipo)
-    }
-  }
-  return {
-    totalPontosAtivos: ativos.length,
-    totalTiposDoacao: tiposSet.size,
-    tiposDisponiveis: [...tiposSet] as ResumoSistema['tiposDisponiveis'],
-  }
+export function getResumo() {
+  return service.getResumo()
 }

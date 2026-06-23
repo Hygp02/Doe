@@ -1,21 +1,6 @@
-import cors from 'cors'
-import express from 'express'
-import { router as pontosRouter } from './routes/pontos.routes.js'
+import { app } from './app.js'
 
-const app = express()
 const port = Number(process.env.PORT ?? 3000)
-
-app.use(cors())
-app.use(express.json())
-
-app.get('/health', (_request, response) => {
-  response.json({
-    name: 'Mapa Solidario Maceio API',
-    status: 'ok',
-  })
-})
-
-app.use(pontosRouter)
 
 app.listen(port, () => {
   console.log(`Mapa Solidario Maceio API running on http://localhost:${port}`)

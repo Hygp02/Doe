@@ -173,32 +173,25 @@ As coordenadas geográficas (latitude e longitude) dos endereços foram obtidas 
 - **Sem integrações externas**: Não há envio de emails, notificações ou validação externa.
 - **Escopo Maceió**: A cidade padrão é fixa como "Maceio".
 
-## Deploy no GitHub Pages
+## Deploy na Vercel
 
-O projeto possui um workflow em `.github/workflows/deploy-frontend.yml` que faz o build do frontend e publica o conteúdo de `frontend/dist` no GitHub Pages automaticamente a cada push na branch `main`.
+O projeto usa um monorepo com o app web em `frontend/` e a API em `backend/`.
+Na Vercel, configure o projeto usando a raiz do repositorio como **Root
+Directory** para que a plataforma consiga publicar o frontend e as functions
+`/api/*`.
 
-### Configuração necessária na Vercel
-
-O projeto usa um monorepo com o app web dentro de `frontend/`. O arquivo
-`vercel.json` na raiz aponta a Vercel para o build correto:
-
+- **Root Directory**: `.`
 - **Build Command**: `npm run build --workspace @mapa-solidario/frontend`
 - **Output Directory**: `frontend/dist`
+- **API**: `api/[...path].ts` encaminha `/api/*` para o backend Express
 - **SPA fallback**: todas as rotas retornam para `/index.html`
-
-Se o projeto da Vercel estiver configurado com **Root Directory** igual a
-`frontend`, use estes valores:
-
-- **Build Command**: `npm run build`
-- **Output Directory**: `dist`
-
-Nesse caso, a Vercel usa o `frontend/vercel.json`.
 
 ### Como funciona
 
-- O workflow instala as dependências com `npm ci`.
+- A Vercel instala as dependencias do monorepo.
 - Executa `npm run build --workspace=@mapa-solidario/frontend`.
-- Publica o diretório `frontend/dist`.
+- Publica o diretorio `frontend/dist`.
+- Disponibiliza o backend Express como funcoes serverless em `/api`.
 
 O `index.html` dentro de `frontend/` é o arquivo de entrada do Vite. Em
 produção, a Vercel serve os arquivos gerados em `frontend/dist`, incluindo o

@@ -177,20 +177,24 @@ As coordenadas geográficas (latitude e longitude) dos endereços foram obtidas 
 
 O projeto possui um workflow em `.github/workflows/deploy-frontend.yml` que faz o build do frontend e publica o conteúdo de `frontend/dist` no GitHub Pages automaticamente a cada push na branch `main`.
 
-### Configuração necessária no GitHub
+### Configuração necessária na Vercel
 
-1. Acesse **Settings → Pages** do repositório.
-2. Em **Build and deployment → Source**, selecione **GitHub Actions**.
-3. (Opcional) Defina o domínio customizado, se houver.
+O projeto usa um monorepo com o app web dentro de `frontend/`. O arquivo
+`vercel.json` na raiz aponta a Vercel para o build correto:
+
+- **Build Command**: `npm run build --workspace @mapa-solidario/frontend`
+- **Output Directory**: `frontend/dist`
+- **SPA fallback**: todas as rotas retornam para `/index.html`
 
 ### Como funciona
 
 - O workflow instala as dependências com `npm ci`.
 - Executa `npm run build --workspace=@mapa-solidario/frontend`.
-- Faz o upload do diretório `frontend/dist` como artifact.
-- Publica o artifact no GitHub Pages usando `actions/deploy-pages`.
+- Publica o diretório `frontend/dist`.
 
-O `vite.config.ts` está configurado com `base: '/Doe-/'` e o router usa `createWebHashHistory`, garantindo que os assets e as rotas funcionem corretamente sob o subcaminho do GitHub Pages de projeto.
+O `index.html` dentro de `frontend/` é o arquivo de entrada do Vite. Em
+produção, a Vercel serve os arquivos gerados em `frontend/dist`, incluindo o
+`index.html` final e os assets em `/assets`.
 
 ## Validação Rápida
 

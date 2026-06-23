@@ -167,7 +167,7 @@ As coordenadas geográficas (latitude e longitude) dos endereços foram obtidas 
 
 ## Limitações do Protótipo
 
-- **Dados em memória**: Os dados são carregados em memória ao iniciar o servidor backend. Alterações feitas via área administrativa são perdidas ao reiniciar o servidor.
+- **Dados em memória**: Os dados são mockados no frontend. Alterações feitas via área administrativa são perdidas ao recarregar a página.
 - **Sem autenticação**: A área administrativa é acessível sem login.
 - **Sem banco de dados**: Não há persistência em disco ou banco de dados.
 - **Sem integrações externas**: Não há envio de emails, notificações ou validação externa.
@@ -175,15 +175,12 @@ As coordenadas geográficas (latitude e longitude) dos endereços foram obtidas 
 
 ## Deploy na Vercel
 
-O projeto usa um monorepo com o app web em `frontend/` e a API em `backend/`.
-Na Vercel, configure o projeto usando a raiz do repositorio como **Root
-Directory** para que a plataforma consiga publicar o frontend e as functions
-`/api/*`.
+O deploy da Vercel publica apenas o frontend estático. Os dados das ONGs são
+mockados no próprio frontend, então não é necessário rodar backend em produção.
 
 - **Root Directory**: `.`
 - **Build Command**: `npm run build --workspace @mapa-solidario/frontend`
 - **Output Directory**: `frontend/dist`
-- **API**: `api/[...path].ts` encaminha `/api/*` para o backend Express
 - **SPA fallback**: todas as rotas retornam para `/index.html`
 
 ### Como funciona
@@ -191,7 +188,6 @@ Directory** para que a plataforma consiga publicar o frontend e as functions
 - A Vercel instala as dependencias do monorepo.
 - Executa `npm run build --workspace=@mapa-solidario/frontend`.
 - Publica o diretorio `frontend/dist`.
-- Disponibiliza o backend Express como funcoes serverless em `/api`.
 
 O `index.html` dentro de `frontend/` é o arquivo de entrada do Vite. Em
 produção, a Vercel serve os arquivos gerados em `frontend/dist`, incluindo o

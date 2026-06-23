@@ -1,30 +1,26 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { buscarPorId } from '@/services/pontos.service'
-import type { PontoColeta } from '@/types/ponto-coleta'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { ArrowLeft, MapPin, Clock, FileText, Package, AlertCircle } from 'lucide-vue-next'
+import { usePonto } from '@/composables/usePonto'
+import AppLoading from '@/components/AppLoading.vue'
+import AppError from '@/components/AppError.vue'
+import ExternalActions from '@/components/ExternalActions.vue'
+import MapaMaceio from '@/components/MapaMaceio.vue'
+import { corTipoDoacao } from '@/constants/tipos-doacao'
 
 const route = useRoute()
 const router = useRouter()
+const { ponto, loading, error, notFound, carregar } = usePonto()
 
-const ponto = ref<PontoColeta | null>(null)
-const loading = ref(true)
-const error = ref<string | null>(null)
-const notFound = ref(false)
+const pontoId = computed(() => route.params.id as string)
 
-onMounted(async () => {
-  try {
-    ponto.value = await buscarPorId(route.params.id as string)
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : 'Erro ao carregar detalhes.'
-    if (msg.includes('nao encontrado')) {
-      notFound.value = true
-    } else {
-      error.value = msg
-    }
-  } finally {
-    loading.value = false
-  }
+onMounted(() => {
+  carregar(pontoId.value)
 })
 
 function voltar() {
@@ -34,91 +30,207 @@ function voltar() {
 
 <template>
   <div class="space-y-6">
-    <button
-      class="inline-flex items-center text-sm text-primary hover:underline"
+    <Button
+      variant="ghost"
+      class="px-0 gap-2"
       @click="voltar"
     >
-      &larr; Voltar para listagem
-    </button>
+      <ArrowLeft
+        class="h-4 w-4"
+        aria-hidden="true"
+      />
+      Voltar para listagem
+    </Button>
 
-    <section v-if="loading" class="text-center py-8">
-      <p class="text-muted-foreground">Carregando detalhes...</p>
-    </section>
+    <AppLoading
+      v-if="loading"
+      message="Carregando detalhes..."
+    />
 
-    <section v-else-if="notFound" class="text-center py-12 space-y-4">
-      <p class="text-lg text-muted-foreground">Ponto de coleta nao encontrado.</p>
-      <p class="text-sm text-muted-foreground">O ponto solicitado nao existe ou foi removido.</p>
-      <button
-        class="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground h-10 px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
-        @click="voltar"
-      >
-        Voltar para listagem
-      </button>
-    </section>
+    <div
+      v-else-if="notFound"
+      class="flex flex-col items-center justify-center gap-4 py-16 text-center"
+      role="status"
+    >
+      <div class="rounded-full bg-muted p-4">
+        <AlertCircle
+          class="h-8 w-8 text-muted-foreground"
+          aria-hidden="true"
+        />
+      </div>
+      <div class="space-y-1">
+        <p class="text-lg font-medium">
+          Ponto de coleta não encontrado
+        </p>
+        <p class="text-sm text-muted-foreground">
+          O ponto solicitado não existe ou foi removido.
+        </p>
+      </div>
+      <Button as-child>
+        <RouterLink to="/pontos">
+          Voltar para listagem
+        </RouterLink>
+      </Button>
+    </div>
 
-    <section v-else-if="error" class="text-center py-8">
-      <p class="text-destructive">{{ error }}</p>
-    </section>
+    <AppError
+      v-else-if="error"
+      :message="error"
+      @retry="carregar(pontoId)"
+    />
 
-    <section v-else-if="ponto" class="space-y-6">
-      <div>
-        <h1 class="text-2xl font-bold">{{ ponto.nome }}</h1>
-        <span
-          class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium mt-1"
-          :class="ponto.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-muted text-muted-foreground'"
-        >
-          {{ ponto.status === 'ativo' ? 'Ativo' : 'Inativo' }}
-        </span>
+    <section
+      v-else-if="ponto"
+      class="space-y-6"
+    >
+      <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div class="space-y-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-2xl sm:text-3xl font-bold">
+              {{ ponto.nome }}
+            </h1>
+            <Badge
+              :variant="ponto.status === 'ativo' ? 'default' : 'secondary'"
+              class="text-xs"
+            >
+              {{ ponto.status === 'ativo' ? 'Ativo' : 'Inativo' }}
+            </Badge>
+          </div>
+          <p
+            v-if="ponto.descricao"
+            class="text-muted-foreground max-w-3xl"
+          >
+            {{ ponto.descricao }}
+          </p>
+        </div>
       </div>
 
-      <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
-        <div class="p-6 space-y-4">
-          <div v-if="ponto.descricao">
-            <h3 class="text-sm font-medium text-muted-foreground">Descricao</h3>
-            <p>{{ ponto.descricao }}</p>
-          </div>
+      <ExternalActions :ponto="ponto" />
 
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div>
-              <h3 class="text-sm font-medium text-muted-foreground">Endereco</h3>
-              <p>{{ ponto.endereco }}</p>
+      <div class="grid gap-6 lg:grid-cols-3">
+        <Card class="lg:col-span-2">
+          <CardHeader>
+            <CardTitle class="text-lg flex items-center gap-2">
+              <MapPin
+                class="h-5 w-5 text-primary"
+                aria-hidden="true"
+              />
+              Informações do local
+            </CardTitle>
+          </CardHeader>
+          <CardContent class="space-y-4">
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div>
+                <h2 class="text-sm font-medium text-muted-foreground">
+                  Endereço
+                </h2>
+                <p class="mt-0.5">
+                  {{ ponto.endereco }}
+                </p>
+              </div>
+              <div>
+                <h2 class="text-sm font-medium text-muted-foreground">
+                  Bairro
+                </h2>
+                <p class="mt-0.5">
+                  {{ ponto.bairro }}
+                </p>
+              </div>
+              <div>
+                <h2 class="text-sm font-medium text-muted-foreground">
+                  Cidade
+                </h2>
+                <p class="mt-0.5">
+                  {{ ponto.cidade }}
+                </p>
+              </div>
+              <div>
+                <h2 class="text-sm font-medium text-muted-foreground">
+                  Telefone
+                </h2>
+                <p class="mt-0.5">
+                  {{ ponto.telefone || 'Não informado' }}
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 class="text-sm font-medium text-muted-foreground">Bairro</h3>
-              <p>{{ ponto.bairro }}</p>
-            </div>
-            <div>
-              <h3 class="text-sm font-medium text-muted-foreground">Cidade</h3>
-              <p>{{ ponto.cidade }}</p>
-            </div>
-            <div>
-              <h3 class="text-sm font-medium text-muted-foreground">Telefone</h3>
-              <p>{{ ponto.telefone || 'Nao informado' }}</p>
-            </div>
-          </div>
 
-          <div>
-            <h3 class="text-sm font-medium text-muted-foreground">Tipos de doacao aceitos</h3>
-            <div class="flex flex-wrap gap-1.5 mt-1">
-              <span
-                v-for="tipo in ponto.tiposDoacao"
-                :key="tipo"
-                class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-accent text-accent-foreground"
-              >
-                {{ tipo }}
-              </span>
+            <Separator />
+
+            <div>
+              <h2 class="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Clock
+                  class="h-4 w-4"
+                  aria-hidden="true"
+                />
+                Horário de funcionamento
+              </h2>
+              <p class="mt-1">
+                {{ ponto.horarioFuncionamento || 'Não informado' }}
+              </p>
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          <div>
-            <h3 class="text-sm font-medium text-muted-foreground">Horario de funcionamento</h3>
-            <p>{{ ponto.horarioFuncionamento || 'Nao informado' }}</p>
-          </div>
+        <div class="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle class="text-lg flex items-center gap-2">
+                <Package
+                  class="h-5 w-5 text-primary"
+                  aria-hidden="true"
+                />
+                Doações aceitas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div class="flex flex-wrap gap-2">
+                <Badge
+                  v-for="tipo in ponto.tiposDoacao"
+                  :key="tipo"
+                  variant="secondary"
+                  :class="corTipoDoacao(tipo).bg + ' ' + corTipoDoacao(tipo).text"
+                >
+                  {{ tipo }}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
 
-          <div v-if="ponto.observacoes">
-            <h3 class="text-sm font-medium text-muted-foreground">Observacoes</h3>
-            <p>{{ ponto.observacoes }}</p>
-          </div>
+          <Card v-if="ponto.observacoes">
+            <CardHeader>
+              <CardTitle class="text-lg flex items-center gap-2">
+                <FileText
+                  class="h-5 w-5 text-primary"
+                  aria-hidden="true"
+                />
+                Observações
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p class="text-sm text-muted-foreground leading-relaxed">
+                {{ ponto.observacoes }}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card class="overflow-hidden animate-fade-in">
+            <CardHeader>
+              <CardTitle class="text-lg flex items-center gap-2">
+                <MapPin
+                  class="h-5 w-5 text-primary"
+                  aria-hidden="true"
+                />
+                Localização no mapa
+              </CardTitle>
+            </CardHeader>
+            <CardContent class="p-0">
+              <MapaMaceio
+                :pontos="[ponto]"
+                :interactive="false"
+                :height="220"
+              />
+            </CardContent>
+          </Card>
         </div>
       </div>
     </section>

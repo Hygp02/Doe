@@ -48,7 +48,7 @@ describe('PontoCard', () => {
 
   it('deve renderizar todos os tipos de doacao como badges', () => {
     const wrapper = mountCard()
-    const badges = wrapper.findAll('span')
+    const badges = wrapper.findAll('[data-testid="tipo-badge"]')
     const tiposTextos = badges.map((b) => b.text())
     expect(tiposTextos).toContain('alimentos')
     expect(tiposTextos).toContain('roupas')

@@ -1,20 +1,14 @@
-import type { Component, VNode } from "vue"
-import type { ToastProps } from "."
 import { computed, ref } from "vue"
 
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
 
-export type StringOrVNode
-  = | string
-    | VNode
-    | (() => VNode)
-
-type ToasterToast = ToastProps & {
+type ToasterToast = {
   id: string
+  open?: boolean
   title?: string
-  description?: StringOrVNode
-  action?: Component
+  description?: string
+  variant?: 'default' | 'destructive'
 }
 
 const actionTypes = {
@@ -148,10 +142,6 @@ function toast(props: Toast) {
       ...props,
       id,
       open: true,
-      onOpenChange: (open: boolean) => {
-        if (!open)
-          dismiss()
-      },
     },
   })
 

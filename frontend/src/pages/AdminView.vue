@@ -1,8 +1,24 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Plus, Pencil, Trash2, AlertTriangle } from 'lucide-vue-next'
 import { listarTodos, remover } from '@/services/pontos.service'
 import type { PontoColeta } from '@/types/ponto-coleta'
+import AppLoading from '@/components/AppLoading.vue'
+import AppError from '@/components/AppError.vue'
+import AppFeedback from '@/components/AppFeedback.vue'
+import PageHeader from '@/components/PageHeader.vue'
 
 const router = useRouter()
 
@@ -10,6 +26,8 @@ const pontos = ref<PontoColeta[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 const deleting = ref<string | null>(null)
+const pontoParaRemover = ref<PontoColeta | null>(null)
+const dialogOpen = ref(false)
 const feedback = ref<{ type: 'success' | 'error'; message: string } | null>(null)
 
 async function carregar() {
@@ -28,14 +46,22 @@ onMounted(() => {
   carregar()
 })
 
-async function handleDelete(id: string) {
-  if (!confirm('Deseja remover este ponto de coleta? Esta acao nao pode ser desfeita.')) return
+function abrirConfirmacao(ponto: PontoColeta) {
+  pontoParaRemover.value = ponto
+  dialogOpen.value = true
+}
+
+async function confirmarRemocao() {
+  if (!pontoParaRemover.value) return
+  const id = pontoParaRemover.value.id
   deleting.value = id
-  feedback.value = null
   try {
     await remover(id)
     pontos.value = pontos.value.filter((p) => p.id !== id)
-    feedback.value = { type: 'success', message: 'Ponto removido com sucesso.' }
+    feedback.value = {
+      type: 'success',
+      message: `${pontoParaRemover.value.nome} foi removido com sucesso.`,
+    }
   } catch (e) {
     feedback.value = {
       type: 'error',
@@ -43,6 +69,8 @@ async function handleDelete(id: string) {
     }
   } finally {
     deleting.value = null
+    pontoParaRemover.value = null
+    dialogOpen.value = false
   }
 }
 
@@ -57,101 +85,246 @@ function navigateToEdit(id: string) {
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold">Administracao</h1>
-        <p class="text-muted-foreground">Gerencie os pontos de coleta.</p>
-      </div>
-      <button
-        class="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground h-10 px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label="Cadastrar novo ponto de coleta"
+    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+      <PageHeader
+        title="Administração"
+        description="Gerencie os pontos de coleta de forma simulada."
+      />
+      <Button
+        class="gap-2 shrink-0"
         @click="navigateToCreate"
       >
+        <Plus
+          class="h-4 w-4"
+          aria-hidden="true"
+        />
         Novo ponto
-      </button>
+      </Button>
     </div>
 
     <div
-      class="rounded-lg border bg-accent/50 p-4 text-sm text-muted-foreground"
+      class="rounded-xl border border-amber-200 bg-amber-50/60 p-4 text-sm text-amber-800"
       role="status"
     >
-      <strong>Atencao:</strong> Os dados sao mockados e alteracoes serao perdidas ao reiniciar o servidor.
+      <div class="flex items-start gap-3">
+        <AlertTriangle
+          class="h-5 w-5 mt-0.5 shrink-0"
+          aria-hidden="true"
+        />
+        <p>
+          <strong>Atenção:</strong> Os dados são mockados e alterações serão perdidas ao reiniciar o servidor.
+        </p>
+      </div>
     </div>
 
-    <div
+    <AppFeedback
       v-if="feedback"
-      class="rounded-md p-3 text-sm"
-      :class="feedback.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-destructive/10 text-destructive border border-destructive/20'"
-      role="alert"
-    >
-      {{ feedback.message }}
-    </div>
+      :type="feedback.type"
+      :message="feedback.message"
+    />
 
-    <section v-if="loading" class="text-center py-8" aria-busy="true">
-      <p class="text-muted-foreground">Carregando...</p>
-    </section>
+    <AppLoading
+      v-if="loading"
+      message="Carregando pontos..."
+    />
 
-    <section v-else-if="error" class="text-center py-8" role="alert">
-      <p class="text-destructive">{{ error }}</p>
-    </section>
+    <AppError
+      v-else-if="error"
+      :message="error"
+      @retry="carregar"
+    />
 
-    <section v-else class="rounded-lg border">
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="border-b bg-muted/50">
-              <th scope="col" class="px-4 py-3 text-left font-medium">Nome</th>
-              <th scope="col" class="px-4 py-3 text-left font-medium">Bairro</th>
-              <th scope="col" class="px-4 py-3 text-left font-medium">Status</th>
-              <th scope="col" class="px-4 py-3 text-left font-medium">Tipos</th>
-              <th scope="col" class="px-4 py-3 text-right font-medium">Acoes</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="ponto in pontos"
-              :key="ponto.id"
-              class="border-b last:border-0 hover:bg-muted/30"
-            >
-              <td class="px-4 py-3 font-medium">{{ ponto.nome }}</td>
-              <td class="px-4 py-3 text-muted-foreground">{{ ponto.bairro }}</td>
-              <td class="px-4 py-3">
-                <span
-                  class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                  :class="ponto.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-muted text-muted-foreground'"
+    <section v-else>
+      <div class="hidden md:block rounded-xl border overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b bg-muted/50">
+                <th
+                  scope="col"
+                  class="px-4 py-3 text-left font-medium"
                 >
-                  {{ ponto.status }}
-                </span>
-              </td>
-              <td class="px-4 py-3 text-muted-foreground">
-                {{ ponto.tiposDoacao.join(', ') }}
-              </td>
-              <td class="px-4 py-3 text-right">
-                <div class="flex justify-end gap-2">
-                  <button
-                    class="inline-flex items-center justify-center rounded-md border border-input bg-background h-8 px-3 text-xs font-medium hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    :aria-label="`Editar ${ponto.nome}`"
-                    @click="navigateToEdit(ponto.id)"
+                  Nome
+                </th>
+                <th
+                  scope="col"
+                  class="px-4 py-3 text-left font-medium"
+                >
+                  Bairro
+                </th>
+                <th
+                  scope="col"
+                  class="px-4 py-3 text-left font-medium"
+                >
+                  Status
+                </th>
+                <th
+                  scope="col"
+                  class="px-4 py-3 text-left font-medium"
+                >
+                  Tipos
+                </th>
+                <th
+                  scope="col"
+                  class="px-4 py-3 text-right font-medium"
+                >
+                  Ações
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="ponto in pontos"
+                :key="ponto.id"
+                class="border-b last:border-0 hover:bg-muted/30 transition-colors"
+              >
+                <td class="px-4 py-3 font-medium">
+                  {{ ponto.nome }}
+                </td>
+                <td class="px-4 py-3 text-muted-foreground">
+                  {{ ponto.bairro }}
+                </td>
+                <td class="px-4 py-3">
+                  <Badge
+                    :variant="ponto.status === 'ativo' ? 'default' : 'secondary'"
+                    class="text-xs"
                   >
-                    Editar
-                  </button>
-                  <button
-                    class="inline-flex items-center justify-center rounded-md border border-destructive bg-background h-8 px-3 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    :disabled="deleting === ponto.id"
-                    :aria-label="`Remover ${ponto.nome}`"
-                    @click="handleDelete(ponto.id)"
-                  >
-                    {{ deleting === ponto.id ? '...' : 'Remover' }}
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div v-if="pontos.length === 0" class="p-8 text-center text-muted-foreground">
+                    {{ ponto.status === 'ativo' ? 'Ativo' : 'Inativo' }}
+                  </Badge>
+                </td>
+                <td class="px-4 py-3 text-muted-foreground">
+                  {{ ponto.tiposDoacao.join(', ') }}
+                </td>
+                <td class="px-4 py-3 text-right">
+                  <div class="flex justify-end gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      class="gap-1.5"
+                      :aria-label="`Editar ${ponto.nome}`"
+                      @click="navigateToEdit(ponto.id)"
+                    >
+                      <Pencil
+                        class="h-3.5 w-3.5"
+                        aria-hidden="true"
+                      />
+                      Editar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      class="gap-1.5"
+                      :disabled="deleting === ponto.id"
+                      :aria-label="`Remover ${ponto.nome}`"
+                      @click="abrirConfirmacao(ponto)"
+                    >
+                      <Trash2
+                        class="h-3.5 w-3.5"
+                        aria-hidden="true"
+                      />
+                      {{ deleting === ponto.id ? '...' : 'Remover' }}
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div
+          v-if="pontos.length === 0"
+          class="p-8 text-center text-muted-foreground"
+        >
+          Nenhum ponto cadastrado.
+        </div>
+      </div>
+
+      <div class="md:hidden grid gap-4">
+        <Card
+          v-for="ponto in pontos"
+          :key="ponto.id"
+          class="shadow-sm"
+        >
+          <CardHeader class="pb-3">
+            <div class="flex items-start justify-between gap-2">
+              <CardTitle class="text-base leading-tight">
+                {{ ponto.nome }}
+              </CardTitle>
+              <Badge
+                :variant="ponto.status === 'ativo' ? 'default' : 'secondary'"
+                class="text-xs"
+              >
+                {{ ponto.status === 'ativo' ? 'Ativo' : 'Inativo' }}
+              </Badge>
+            </div>
+            <CardDescription>{{ ponto.bairro }}</CardDescription>
+          </CardHeader>
+          <CardContent class="pb-3 pt-0">
+            <p class="text-sm text-muted-foreground">
+              <span class="font-medium text-foreground">Tipos:</span>
+              {{ ponto.tiposDoacao.join(', ') }}
+            </p>
+          </CardContent>
+          <CardFooter class="flex gap-2 pt-0">
+            <Button
+              class="flex-1"
+              variant="outline"
+              size="sm"
+              @click="navigateToEdit(ponto.id)"
+            >
+              <Pencil
+                class="h-3.5 w-3.5 mr-1.5"
+                aria-hidden="true"
+              />
+              Editar
+            </Button>
+            <Button
+              class="flex-1"
+              variant="destructive"
+              size="sm"
+              :disabled="deleting === ponto.id"
+              @click="abrirConfirmacao(ponto)"
+            >
+              <Trash2
+                class="h-3.5 w-3.5 mr-1.5"
+                aria-hidden="true"
+              />
+              {{ deleting === ponto.id ? '...' : 'Remover' }}
+            </Button>
+          </CardFooter>
+        </Card>
+        <div
+          v-if="pontos.length === 0"
+          class="text-center text-muted-foreground py-8"
+        >
           Nenhum ponto cadastrado.
         </div>
       </div>
     </section>
+
+    <Dialog v-model:open="dialogOpen">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Confirmar remoção</DialogTitle>
+          <DialogDescription>
+            Tem certeza que deseja remover <strong>{{ pontoParaRemover?.nome }}</strong>? Esta ação não pode ser desfeita.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            @click="dialogOpen = false"
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="destructive"
+            :disabled="!!deleting"
+            @click="confirmarRemocao"
+          >
+            {{ deleting ? 'Removendo...' : 'Remover' }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>

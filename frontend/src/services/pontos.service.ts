@@ -1,5 +1,5 @@
 import { http } from './http'
-import type { PontoColeta, ResumoSistema } from '../types/ponto-coleta'
+import type { PontoColeta, PontoColetaInput, ResumoSistema } from '../types/ponto-coleta'
 
 export function listarAtivos(): Promise<PontoColeta[]> {
   return http.get<PontoColeta[]>('/pontos')
@@ -20,11 +20,11 @@ export function buscarPorId(id: string): Promise<PontoColeta> {
   return http.get<PontoColeta>(`/pontos/${id}`)
 }
 
-export function criar(ponto: Omit<PontoColeta, 'id'>): Promise<PontoColeta> {
+export function criar(ponto: PontoColetaInput): Promise<PontoColeta> {
   return http.post<PontoColeta>('/pontos', ponto)
 }
 
-export function atualizar(id: string, ponto: Omit<PontoColeta, 'id'>): Promise<PontoColeta> {
+export function atualizar(id: string, ponto: PontoColetaInput): Promise<PontoColeta> {
   return http.put<PontoColeta>(`/pontos/${id}`, ponto)
 }
 

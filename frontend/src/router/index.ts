@@ -33,6 +33,11 @@ const router = createRouter({
       name: 'admin-editar',
       component: () => import('../pages/PontoFormView.vue'),
     },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('../pages/NotFoundView.vue'),
+    },
   ],
 })
 

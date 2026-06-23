@@ -1,9 +1,15 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Button } from '@/components/ui/button'
+import { ArrowLeft } from 'lucide-vue-next'
 import { buscarPorId, criar, atualizar } from '@/services/pontos.service'
 import type { PontoColeta, PontoColetaInput } from '@/types/ponto-coleta'
 import PontoForm from '@/components/PontoForm.vue'
+import AppLoading from '@/components/AppLoading.vue'
+import AppError from '@/components/AppError.vue'
+import AppFeedback from '@/components/AppFeedback.vue'
+import PageHeader from '@/components/PageHeader.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,17 +23,21 @@ const formLoading = ref(false)
 const error = ref<string | null>(null)
 const feedback = ref<{ type: 'success' | 'error'; message: string } | null>(null)
 
-onMounted(async () => {
-  if (isEditing.value) {
-    pageLoading.value = true
-    try {
-      ponto.value = await buscarPorId(route.params.id as string)
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Erro ao carregar ponto.'
-    } finally {
-      pageLoading.value = false
-    }
+async function carregar() {
+  if (!isEditing.value) return
+  pageLoading.value = true
+  error.value = null
+  try {
+    ponto.value = await buscarPorId(route.params.id as string)
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Erro ao carregar ponto.'
+  } finally {
+    pageLoading.value = false
   }
+}
+
+onMounted(() => {
+  carregar()
 })
 
 async function handleSubmit(data: PontoColetaInput) {
@@ -60,33 +70,42 @@ function voltar() {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <div class="flex items-center gap-4">
-      <button
-        class="inline-flex items-center text-sm text-primary hover:underline"
-        @click="voltar"
-      >
-        &larr; Voltar
-      </button>
-      <h1 class="text-2xl font-bold">{{ pageTitle }}</h1>
-    </div>
+  <div class="max-w-3xl mx-auto space-y-6">
+    <Button
+      variant="ghost"
+      class="px-0 gap-2"
+      @click="voltar"
+    >
+      <ArrowLeft
+        class="h-4 w-4"
+        aria-hidden="true"
+      />
+      Voltar
+    </Button>
 
-    <section v-if="pageLoading" class="text-center py-8">
-      <p class="text-muted-foreground">Carregando...</p>
-    </section>
+    <PageHeader :title="pageTitle" />
 
-    <section v-else-if="error" class="text-center py-8">
-      <p class="text-destructive">{{ error }}</p>
-    </section>
+    <AppLoading
+      v-if="pageLoading"
+      message="Carregando..."
+    />
 
-    <section v-else>
-      <div
+    <AppError
+      v-else-if="error"
+      :message="error"
+      @retry="carregar"
+    />
+
+    <section
+      v-else
+      class="rounded-xl border bg-card p-5 sm:p-6 shadow-sm"
+    >
+      <AppFeedback
         v-if="feedback"
-        class="rounded-md p-3 text-sm mb-4"
-        :class="feedback.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-destructive/10 text-destructive border border-destructive/20'"
-      >
-        {{ feedback.message }}
-      </div>
+        :type="feedback.type"
+        :message="feedback.message"
+        class="mb-5"
+      />
 
       <PontoForm
         :initial-data="ponto ?? undefined"

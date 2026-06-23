@@ -39,10 +39,10 @@ describe('PontoForm', () => {
   it('deve mostrar erro ao submeter sem campos obrigatorios', async () => {
     const wrapper = mountForm()
     await wrapper.find('form').trigger('submit.prevent')
-    expect(wrapper.text()).toContain('Nome e obrigatorio.')
-    expect(wrapper.text()).toContain('Endereco e obrigatorio.')
-    expect(wrapper.text()).toContain('Bairro e obrigatorio.')
-    expect(wrapper.text()).toContain('Selecione ao menos um tipo de doacao.')
+    expect(wrapper.text()).toContain('Nome é obrigatório.')
+    expect(wrapper.text()).toContain('Endereço é obrigatório.')
+    expect(wrapper.text()).toContain('Bairro é obrigatório.')
+    expect(wrapper.text()).toContain('Selecione ao menos um tipo de doação.')
   })
 
   it('deve emitir submit com dados validos', async () => {

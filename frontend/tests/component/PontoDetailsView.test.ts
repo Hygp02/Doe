@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import PontoDetailsView from '@/pages/PontoDetailsView.vue'
 import { createRouter, createMemoryHistory } from 'vue-router'

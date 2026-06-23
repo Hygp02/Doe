@@ -173,6 +173,25 @@ As coordenadas geográficas (latitude e longitude) dos endereços foram obtidas 
 - **Sem integrações externas**: Não há envio de emails, notificações ou validação externa.
 - **Escopo Maceió**: A cidade padrão é fixa como "Maceio".
 
+## Deploy no GitHub Pages
+
+O projeto possui um workflow em `.github/workflows/deploy-frontend.yml` que faz o build do frontend e publica o conteúdo de `frontend/dist` no GitHub Pages automaticamente a cada push na branch `main`.
+
+### Configuração necessária no GitHub
+
+1. Acesse **Settings → Pages** do repositório.
+2. Em **Build and deployment → Source**, selecione **GitHub Actions**.
+3. (Opcional) Defina o domínio customizado, se houver.
+
+### Como funciona
+
+- O workflow instala as dependências com `npm ci`.
+- Executa `npm run build --workspace=@mapa-solidario/frontend`.
+- Faz o upload do diretório `frontend/dist` como artifact.
+- Publica o artifact no GitHub Pages usando `actions/deploy-pages`.
+
+O `vite.config.ts` está configurado com `base: '/Doe-/'` e o router usa `createWebHashHistory`, garantindo que os assets e as rotas funcionem corretamente sob o subcaminho do GitHub Pages de projeto.
+
 ## Validação Rápida
 
 Consulte os guias de validação em:

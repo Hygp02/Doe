@@ -1,6 +1,6 @@
 {
   "buildCommand": "npm run build",
-  "outputDirectory": "frontent/dist",
+  "outputDirectory": "/frontent/dist",
   "rewrites": [
     {
       "source": "/(.*)",
